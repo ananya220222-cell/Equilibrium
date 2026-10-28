@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="th" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>สมดุลกล: Mechanical Equilibrium - Roblox Style Edition</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Fredoka for playful Roblox-like typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for UI icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        fredoka: ['Fredoka', 'sans-serif'],
+                    },
+                    colors: {
+                        robloxBlue: '#0070f3',
+                        robloxGreen: '#23883a',
+                        robloxYellow: '#f5a623',
+                        robloxDark: '#191b1f',
+                        robloxCard: '#23272e',
+                        robloxModal: '#2d323c',
+                        robloxRed: '#e81d1d'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Fredoka', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        /* Roblox style glossy buttons with chunky bottom border */
+        .roblox-btn {
+            transition: all 0.1s ease;
+            box-shadow: 0 4px 0 rgba(0, 0, 0, 0.4);
+            border-bottom: 4px solid rgba(0, 0, 0, 0.3);
+        }
+        .roblox-btn:active {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 rgba(0, 0, 0, 0.4);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #191b1f;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #3a414e;
+            border-radius: 4px;
+        }
+        /* Bounce animation */
+        @keyframes robloxBounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+        .animate-roblox-bounce {
+            animation: robloxBounce 2s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-robloxDark text-white h-full overflow-x-hidden flex flex-col">
+
+    <!-- AUDIO SYSTEM & SOUND SYNTHESIZER (Web Audio API) -->
+    <script>
+        class SoundEngine {
+            constructor() {
+                this.ctx = null;
+                this.bgmInterval = null;
+                this.isMuted = false;
+                this.volume = 0.5;
+            }
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioContext();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+            playClick() {
+                if (this.isMuted) return;
+                this.init();
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(450, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(850, this.ctx.currentTime + 0.08);
+                gain.gain.setValueAtTime(0.15 * this.volume, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.08);
+            }
+            playSuccess() {
+                if (this.isMuted) return;
+                this.init();
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(523.25, now); // C5
+                osc.frequency.setValueAtTime(659.25, now + 0.1); // E5
+                osc.frequency.setValueAtTime(783.99, now + 0.2); // G5
+                osc.frequency.setValueAtTime(1046.50, now + 0.3); // C6
+                gain.gain.setValueAtTime(0.2 * this.volume, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.4);
+            }
+            playError() {
+                if (this.isMuted) return;
+                this.init();
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(180, now);
+                osc.frequency.linearRampToValueAtTime(90, now + 0.25);
+                gain.gain.setValueAtTime(0.2 * this.volume, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.25);
+            }
+            startBGM() {
+                if (this.bgmInterval) return;
+                const notes = [261.63, 329.63, 392.00, 523.25, 392.00, 329.63, 440.00, 349.23];
+                let step = 0;
+                this.bgmInterval = setInterval(() => {
+                    if (this.isMuted) return;
+                    this.init();
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(notes[step], this.ctx.currentTime);
+                    gain.gain.setValueAtTime(0.02 * this.volume, this.ctx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.001, this.ctx.currentTime + 0.2);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.2);
+                    step = (step + 1) % notes.length;
+                }, 320);
+            }
+            stopBGM() {
+                if (this.bgmInterval) {
+                    clearInterval(this.bgmInterval);
+                    this.bgmInterval = null;
+                }
+            }
+            setVolume(val) {
+                this.volume = parseFloat(val);
+                if (this.volume === 0) {
+                    this.isMuted = true;
+                    this.stopBGM();
+                } else {
+                    this.isMuted = false;
+                    this.startBGM();
+                }
+            }
+        }
+        const soundEngine = new SoundEngine();
+    </script>
+
+    <!-- TOP NAVIGATION BAR (Roblox Style Header) -->
+    <header class="bg-[#1f232a] border-b border-[#2d323c] px-4 py-3 flex justify-between items-center z-40 shadow-md">
+        <div class="flex items-center space-x-3">
+            <div class="bg-robloxBlue text-white font-black text-lg md:text-xl px-3 py-1 rounded-xl shadow border-b-2 border-blue-700 flex items-center space-x-2">
+                <i class="fa-solid fa-scale-balanced text-emerald-300"></i>
+                <span>สมดุลกล (M.4)</span>
+            </div>
+            <span class="hidden md:inline text-xs bg-blue-600/30 text-blue-400 px-2 py-1 rounded-full border border-blue-500/30">Physics Academy</span>
+        </div>
+
+        <!-- Global Player Info & Quick Settings Header -->
+        <div class="flex items-center space-x-3">
+            <div id="header-user-display" class="hidden items-center space-x-2 bg-[#2d323c] px-3 py-1.5 rounded-full border border-gray-700">
+                <span id="header-avatar-icon" class="text-xl">😎</span>
+                <span id="header-username" class="font-bold text-sm text-gray-200">Player</span>
+            </div>
+            <button onclick="showScreen('screen-settings')" class="bg-[#2d323c] hover:bg-gray-700 w-9 h-9 rounded-full flex items-center justify-center text-gray-300 border border-gray-700 transition">
+                <i class="fa-solid fa-gear"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN APP CONTAINER -->
+    <main class="flex-1 flex flex-col relative overflow-hidden">
+
+        <!-- 1. LOGIN & PROFILE SETUP SCREEN -->
+        <section id="screen-login" class="absolute inset-0 flex items-center justify-center p-4 bg-gradient-to-br from-[#191b1f] to-[#252b36] z-30">
+            <div class="bg-[#23272e] border-2 border-[#3a414e] rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl relative">
+                <div class="text-center mb-6">
+                    <div class="w-20 h-20 bg-robloxBlue rounded-3xl mx-auto flex items-center justify-center text-4xl shadow-lg border-b-4 border-blue-800 mb-3 animate-roblox-bounce">
+                        ⚖️
+                    </div>
+                    <h1 class="text-2xl md:text-3xl font-black text-white">เข้าสู่ระบบนักเรียน</h1>
+                    <p class="text-gray-400 text-sm mt-1">ฟิสิกส์ ม.4: เรื่องสมดุลกล (Mechanical Equilibrium)</p>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-gray-400 mb-1">ชื่อ - นามสกุล หรือชื่อเล่น</label>
+                        <input type="text" id="input-username" placeholder="เช่น ด.ช. รักเรียน ฟิสิกส์" maxlength="30"
+                            class="w-full bg-[#191b1f] border-2 border-[#3a414e] focus:border-robloxBlue rounded-xl px-4 py-3 text-white font-medium outline-none transition">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-gray-400 mb-1">เลขประจำตัวนักเรียน</label>
+                        <input type="text" id="input-studentid" placeholder="เช่น 40123" maxlength="10"
+                            class="w-full bg-[#191b1f] border-2 border-[#3a414e] focus:border-robloxBlue rounded-xl px-4 py-3 text-white font-medium outline-none transition">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-gray-400 mb-2">เลือกตัวละครอวตาร</label>
+                        <div class="grid grid-cols-5 gap-2" id="avatar-selector">
+                            <button type="button" onclick="selectAvatar('😎')" class="avatar-option p-3 bg-[#191b1f] border-2 border-robloxBlue rounded-xl text-2xl hover:bg-gray-700 transition">😎</button>
+                            <button type="button" onclick="selectAvatar('🦸')" class="avatar-option p-3 bg-[#191b1f] border-2 border-transparent rounded-xl text-2xl hover:bg-gray-700 transition">🦸</button>
+                            <button type="button" onclick="selectAvatar('🦊')" class="avatar-option p-3 bg-[#191b1f] border-2 border-transparent rounded-xl text-2xl hover:bg-gray-700 transition">🦊</button>
+                            <button type="button" onclick="selectAvatar('🤖')" class="avatar-option p-3 bg-[#191b1f] border-2 border-transparent rounded-xl text-2xl hover:bg-gray-700 transition">🤖</button>
+                            <button type="button" onclick="selectAvatar('🦄')" class="avatar-option p-3 bg-[#191b1f] border-2 border-transparent rounded-xl text-2xl hover:bg-gray-700 transition">🦄</button>
+                        </div>
+                    </div>
+
+                    <button onclick="handleLogin()" class="w-full bg-robloxGreen hover:bg-emerald-600 text-white font-bold py-3.5 rounded-xl roblox-btn text-lg mt-4 flex items-center justify-center space-x-2">
+                        <span>เข้าสู่โลกฟิสิกส์</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. MAIN MENU SCREEN -->
+        <section id="screen-menu" class="absolute inset-0 flex flex-col p-4 md:p-8 overflow-y-auto hidden z-20">
+            <div class="max-w-3xl w-full mx-auto my-auto space-y-6 text-center">
+                <div class="bg-[#23272e] border-2 border-[#3a414e] rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+                    <div class="absolute -right-10 -bottom-10 opacity-10 text-9xl">⚙️</div>
+                    <div class="w-24 h-24 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-3xl mx-auto flex items-center justify-center text-5xl shadow-xl border-b-4 border-blue-800 mb-4 animate-roblox-bounce">
+                        🔭
+                    </div>
+                    <h1 class="text-3xl md:text-4xl font-black text-white" id="menu-welcome-title">ยินดีต้อนรับ, นักฟิสิกส์!</h1>
+                    <p class="text-gray-400 text-sm mt-2 max-w-lg mx-auto">ตะลุยโจทย์สมดุลกล 3 ด่าน ด่านละ 15 ข้อ เวลาด่านละ 8 นาที ทดสอบความเข้าใจและพิชิตคะแนนสูงสุดกันเลย!</p>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
+                        <button onclick="showScreen('screen-levelselect')" class="roblox-btn bg-robloxGreen hover:bg-emerald-600 border-emerald-900 py-4 px-6 rounded-2xl font-bold text-lg flex items-center justify-center space-x-3 shadow-lg">
+                            <i class="fa-solid fa-play text-xl"></i>
+                            <span>เริ่มเกม / เลือกด่าน</span>
+                        </button>
+                        <button onclick="openStatsScreen()" class="roblox-btn bg-robloxBlue hover:bg-blue-600 border-blue-900 py-4 px-6 rounded-2xl font-bold text-lg flex items-center justify-center space-x-3 shadow-lg">
+                            <i class="fa-solid fa-chart-bar text-xl"></i>
+                            <span>ดูสถิติของฉัน</span>
+                        </button>
+                        <button onclick="showScreen('screen-settings')" class="roblox-btn bg-gray-700 hover:bg-gray-600 border-gray-900 py-4 px-6 rounded-2xl font-bold text-lg flex items-center justify-center space-x-3 shadow-lg">
+                            <i class="fa-solid fa-gear text-xl"></i>
+                            <span>ตั้งค่าเสียง</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. LEVEL SELECT SCREEN -->
+        <section id="screen-levelselect" class="absolute inset-0 flex flex-col p-4 md:p-8 overflow-y-auto hidden z-20">
+            <div class="max-w-4xl w-full mx-auto my-auto space-y-6">
+                <div class="flex items-center justify-between">
+                    <button onclick="showScreen('screen-menu')" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-xl text-sm font-bold transition flex items-center space-x-2">
+                        <i class="fa-solid fa-arrow-left"></i>
+                        <span>กลับเมนูหลัก</span>
+                    </button>
+                    <h2 class="text-2xl font-black text-white">เลือกด่านภารกิจสมดุลกล</h2>
+                    <div class="w-24"></div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Level 1 -->
+                    <div class="bg-[#23272e] border-2 border-[#3a414e] rounded-3xl p-6 shadow-xl flex flex-col justify-between relative overflow-hidden">
+                        <div>
+                            <div class="w-12 h-12 bg-emerald-600/30 text-emerald-400 rounded-2xl flex items-center justify-center font-black text-xl mb-4 border border-emerald-500/30">1</div>
+                            <h3 class="font-black text-xl text-white mb-2">แรงและโมเมนต์ของแรง</h3>
+                            <p class="text-xs text-gray-400 leading-relaxed">ศึกษาเงื่อนไขสมดุลต่อการเลื่อนที่และโมเมนต์ (Moment = F × L) จำนวน 15 ข้อ (8 นาที)</p>
+                        </div>
+                        <div class="mt-6">
+                            <div class="text-xs text-gray-400 mb-2 flex justify-between">
+                                <span>คะแนนสูงสุด:</span>
+                                <span id="l1-best" class="font-bold text-robloxYellow">0 / 15</span>
+                            </div>
+                            <button onclick="startLevel(1)" class="w-full bg-robloxGreen hover:bg-emerald-600 text-white font-bold py-3 rounded-xl roblox-btn text-base flex items-center justify-center space-x-2">
+                                <i class="fa-solid fa-play"></i>
+                                <span>ลุยด่าน 1</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Level 2 -->
+                    <div id="card-l2" class="bg-[#23272e] border-2 border-[#3a414e] rounded-3xl p-6 shadow-xl flex flex-col justify-between relative overflow-hidden">
+                        <div>
+                            <div class="w-12 h-12 bg-blue-600/30 text-blue-400 rounded-2xl flex items-center justify-center font-black text-xl mb-4 border border-blue-500/30">2</div>
+                            <h3 class="font-black text-xl text-white mb-2">ศูนย์ถ่วงและเสถียรภาพ</h3>
+                            <p class="text-xs text-gray-400 leading-relaxed">ศึกษาจุดศูนย์ถ่วง (Center of Gravity) และเสถียรภาพของวัตถุ จำนวน 15 ข้อ (8 นาที)</p>
+                        </div>
+                        <div class="mt-6">
+                            <div class="text-xs text-gray-400 mb-2 flex justify-between">
+                                <span>คะแนนสูงสุด:</span>
+                                <span id="l2-best" class="font-bold text-robloxYellow">0 / 15</span>
+                            </div>
+                            <button id="btn-l2" onclick="startLevel(2)" class="w-full bg-robloxBlue hover:bg-blue-600 text-white font-bold py-3 rounded-xl roblox-btn text-base flex items-center justify-center space-x-2">
+                                <i class="fa-solid fa-play"></i>
+                                <span>ลุยด่าน 2</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Level 3 -->
+                    <div id="card-l3" class="bg-[#23272e] border-2 border-[#3a414e] rounded-3xl p-6 shadow-xl flex flex-col justify-between relative overflow-hidden">
+                        <div>
+                            <div class="w-12 h-12 bg-purple-600/30 text-purple-400 rounded-2xl flex items-center justify-center font-black text-xl mb-4 border border-purple-500/30">3</div>
+                            <h3 class="font-black text-xl text-white mb-2">สมดุลต่อการเลื่อนที่และหมุน</h3>
+                            <p class="text-xs text-gray-400 leading-relaxed">โจทย์ประยุกต์สมดุลสมบูรณ์ ΣF = 0 และ ΣM = 0 จำนวน 15 ข้อ (8 นาที)</p>
+                        </div>
+                        <div class="mt-6">
+                            <div class="text-xs text-gray-400 mb-2 flex justify-between">
+                                <span>คะแนนสูงสุด:</span>
+                                <span id="l3-best" class="font-bold text-robloxYellow">0 / 15</span>
+                            </div>
+                            <button id="btn-l3" onclick="startLevel(3)" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-xl roblox-btn text-base flex items-center justify-center space-x-2">
+                                <i class="fa-solid fa-play"></i>
+                                <span>ลุยด่าน 3</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. GAMEPLAY SCREEN -->
+        <section id="screen-game" class="absolute inset-0 flex flex-col hidden z-20 bg-[#15181c]">
+            <!-- In-Game Top HUD -->
+            <div class="bg-[#23272e] border-b border-[#3a414e] px-4 py-3 flex justify-between items-center shadow-lg">
+                <div class="flex items-center space-x-3">
+                    <button onclick="confirmExitGame()" class="bg-gray-700 hover:bg-gray-600 px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1">
+                        <i class="fa-solid fa-arrow-left"></i>
+                        <span>ออก</span>
+                    </button>
+                    <span id="game-stage-indicator" class="text-xs bg-emerald-600/30 text-emerald-400 px-2.5 py-1 rounded-full border border-emerald-500/30 font-bold">ด่าน 1</span>
+                </div>
+
+                <div class="flex items-center space-x-4 md:space-x-6">
+                    <div class="flex items-center space-x-1.5 bg-[#191b1f] px-3 py-1 rounded-xl border border-gray-700">
+                        <i class="fa-solid fa-clock text-robloxYellow"></i>
+                        <span id="game-timer" class="font-black text-robloxYellow text-base">08:00</span>
+                    </div>
+                    <div class="flex items-center space-x-1">
+                        <span class="text-xs text-gray-400">ข้อที่:</span>
+                        <span id="game-qnum" class="font-black text-white text-sm">1/15</span>
+                    </div>
+                    <div class="flex items-center space-x-1">
+                        <span class="text-xs text-gray-400">คะแนน:</span>
+                        <span id="game-score" class="font-black text-emerald-400 text-sm">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Question & Diagram Container -->
+            <div class="flex-1 flex flex-col p-4 md:p-6 max-w-4xl w-full mx-auto overflow-y-auto justify-center space-y-4">
+                <!-- Question Card with Visual SVG Diagram -->
+                <div class="bg-[#23272e] border-2 border-[#3a414e] rounded-3xl p-5 md:p-6 shadow-xl flex flex-col md:flex-row gap-6 items-center">
+                    <!-- Dynamic Physics Diagram Box -->
+                    <div id="diagram-container" class="w-full md:w-5/12 bg-[#191b1f] border border-gray-800 rounded-2xl p-4 flex items-center justify-center min-h-[160px]">
+                        <!-- SVG will be injected here dynamically -->
+                    </div>
+                    <!-- Question Text -->
+                    <div class="w-full md:w-7/12 space-y-2">
+                        <div class="text-xs font-bold text-robloxYellow uppercase tracking-wider">โจทย์คำถามฟิสิกส์</div>
+                        <h3 id="question-text" class="text-base md:text-lg font-bold text-white leading-relaxed">
+                            กำลังโหลดคำถาม...
+                        </h3>
+                    </div>
+                </div>
+
+                <!-- Answer Choices Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="choices-container">
+                    <!-- Choices injected by JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. LEVEL SUMMARY SCREEN -->
+        <section id="screen-levelsummary" class="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 hidden z-50">
+            <div class="bg-[#23272e] border-2 border-[#3a414e] rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl text-center space-y-4 animate-roblox-bounce">
+                <div class="w-20 h-20 bg-robloxYellow rounded-3xl mx-auto flex items-center justify-center text-4xl shadow-lg border-b-4 border-yellow-600">
+                    🏆
+                </div>
+                <h2 class="text-2xl font-black text-white">สรุปผลการพิชิตด่าน</h2>
+                <p id="summary-stage-name" class="text-emerald-400 font-bold text-sm">ด่านที่ 1: แรงและโมเมนต์ของแรง</p>
+
+                <div class="bg-[#191b1f] border border-gray-800 rounded-2xl p-4 space-y-2 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">คะแนนที่ทำได้:</span>
+                        <span id="summary-score" class="font-black text-emerald-400 text-lg">12 / 15</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">ความถูกต้อง:</span>
+                        <span id="summary-accuracy" class="font-bold text-white">80%</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">เวลาที่ใช้:</span>
+                        <span id="summary-time" class="font-bold text-robloxYellow">04:30 นาที</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 pt-2">
+                    <button onclick="showScreen('screen-levelselect')" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-xl roblox-btn text-sm">
+                        เลือกด่าน
+                    </button>
+                    <button id="summary-next-btn" onclick="proceedNextLevel()" class="bg-robloxGreen hover:bg-emerald-600 text-white font-bold py-3 rounded-xl roblox-btn text-sm">
+                        ด่านถัดไป
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 6. STATISTICS DASHBOARD SCREEN -->
+        <section id="screen-stats" class="absolute inset-0 flex flex-col p-4 md:p-8 overflow-y-auto hidden z-20 bg-[#15181c]">
+            <div class="max-w-3xl w-full mx-auto space-y-6 my-auto">
+                <div class="flex items-center justify-between">
+                    <button onclick="showScreen('screen-menu')" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-xl text-sm font-bold transition flex items-center space-x-2">
+                        <i class="fa-solid fa-arrow-left"></i>
+                        <span>กลับเมนูหลัก</span>
+                    </button>
+                    <h2 class="text-2xl font-black text-white">แดชบอร์ดสถิตินักเรียน</h2>
+                    <div class="w-24"></div>
+                </div>
+
+                <div class="bg-[#23272e] border-2 border-[#3a414e] rounded-3xl p-6 shadow-xl space-y-6">
+                    <div class="flex items-center space-x-4 border-b border-gray-700 pb-4">
+                        <div id="stats-avatar" class="text-4xl bg-robloxBlue/20 p-3 rounded-2xl border border-blue-500/30">😎</div>
+                        <div>
+                            <h3 id="stats-name" class="font-black text-xl text-white">ชื่อนักเรียน</h3>
+                            <p class="text-xs text-gray-400">เลขประจำตัว: <span id="stats-id" class="text-robloxYellow font-bold">-</span></p>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="bg-[#191b1f] p-4 rounded-2xl border border-gray-800">
+                            <div class="text-xs text-gray-400 uppercase font-bold mb-1">คะแนนสะสมรวม</div>
+                            <div id="stat-total-score" class="text-2xl font-black text-emerald-400">0</div>
+                        </div>
+                        <div class="bg-[#191b1f] p-4 rounded-2xl border border-gray-800">
+                            <div class="text-xs text-gray-400 uppercase font-bold mb-1">ด่าน 1 (ดีที่สุด)</div>
+                            <div id="stat-l1-best" class="text-2xl font-black text-robloxYellow">0/15</div>
+                        </div>
+                        <div class="bg-[#191b1f] p-4 rounded-2xl border border-gray-800">
+                            <div class="text-xs text-gray-400 uppercase font-bold mb-1">ด่าน 2 (ดีที่สุด)</div>
+                            <div id="stat-l2-best" class="text-2xl font-black text-robloxYellow">0/15</div>
+                        </div>
+                        <div class="bg-[#191b1f] p-4 rounded-2xl border border-gray-800">
+                            <div class="text-xs text-gray-400 uppercase font-bold mb-1">ด่าน 3 (ดีที่สุด)</div>
+                            <div id="stat-l3-best" class="text-2xl font-black text-robloxYellow">0/15</div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h4 class="font-bold text-sm text-gray-300 mb-3">บันทึกประวัติการทำภารกิจ</h4>
+                        <div id="history-list" class="space-y-2 max-h-48 overflow-y-auto">
+                            <!-- Populated by JS -->
+                            <div class="text-xs text-gray-500 text-center py-4">ยังไม่มีประวัติการเล่น</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 7. SETTINGS SCREEN -->
+        <section id="screen-settings" class="absolute inset-0 flex items-center justify-center p-4 hidden z-50 bg-black/80 backdrop-blur-sm">
+            <div class="bg-[#23272e] border-2 border-[#3a414e] rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl space-y-6 relative">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xl font-black text-white flex items-center space-x-2">
+                        <i class="fa-solid fa-gear text-robloxYellow"></i>
+                        <span>ตั้งค่าเกม</span>
+                    </h2>
+                    <button onclick="closeSettings()" class="w-8 h-8 rounded-full bg-gray-700 hover:bg-gray-600 flex items-center justify-center text-gray-300 transition">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-gray-400 mb-2">ระดับเสียงดนตรีและเอฟเฟกต์</label>
+                        <input type="range" id="volume-slider" min="0" max="1" step="0.1" value="0.5" oninput="onVolumeChange(this.value)"
+                            class="w-full accent-robloxBlue cursor-pointer">
+                    </div>
+
+                    <div class="flex items-center justify-between bg-[#191b1f] p-4 rounded-2xl border border-gray-800">
+                        <span class="font-bold text-sm">ปิด/เปิดเสียงทั้งหมด</span>
+                        <button onclick="toggleSoundMute()" id="mute-toggle-btn" class="bg-robloxGreen px-4 py-2 rounded-xl font-bold text-xs roblox-btn">
+                            เปิดเสียงอยู่
+                        </button>
+                    </div>
+                </div>
+
+                <button onclick="closeSettings()" class="w-full bg-robloxBlue hover:bg-blue-600 text-white font-bold py-3 rounded-xl roblox-btn text-base">
+                    บันทึกและกลับ
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- APPLICATION CONTROLLER & QUESTION DATABASE SCRIPT -->
+    <script>
+        // --- STUDENT & PROGRESS STATE ---
+        let studentData = {
+            name: "",
+            id: "",
+            avatar: "😎",
+            levelScores: { 1: 0, 2: 0, 3: 0 },
+            history: []
+        };
+
+        let currentGame = {
+            level: 1,
+            currentQuestionIndex: 0,
+            score: 0,
+            timeLeft: 480, // 8 minutes in seconds
+            timerInterval: null,
+            startTime: 0,
+            questions: []
+        };
+
+        // --- PHYSICS QUESTION DATABASE (M.4 Mechanical Equilibrium) ---
+        // Teachers can easily add, edit, or remove questions here.
+        // Each question contains text, choices, correct choice index, explanation, and an SVG diagram type.
+        const physicsDatabase = {
+            1: [ // Level 1: แรงและโมเมนต์ของแรง
+                {
+                    text: "วัตถุชิ้นหนึ่งอยู่ภายใต้แรงขนาด 10 นิวตัน 2 แรงกระทำในทิศทางตรงกันข้ามบนแนวเส้นตรงเดียวกัน วัตถุนี้จะมีสภาพการเคลื่อนที่อย่างไร?",
+                    choices: ["เคลื่อนที่ด้วยความเร่งคงตัว", "อยู่นิ่งหรือเคลื่อนที่ด้วยความเร็วคงตัว (สมดุลต่อการเลื่อนที่)", "หมุนด้วยความเร่งเชิงมุม", "เคลื่อนที่เป็นวงกลม"],
+                    correct: 1,
+                    diagram: "force_balance"
+                },
+                {
+                    text: "คานสม่ำเสมอยาว 4 เมตร มีน้ำหนัก 50 นิวตัน แขวนไว้ที่จุดกึ่งกลาง หากต้องการให้คานอยู่ในสมดุลต่อการหมุนโดยใช้แรง F กระทำที่ปลายคานด้านขวา ห่างจากจุดหมุน 2 เมตร แรง F ต้องมีขนาดเท่าใด?",
+                    choices: ["25 นิวตัน", "50 นิวตัน", "100 นิวตัน", "200 นิวตัน"],
+                    correct: 1,
+                    diagram: "lever_moment"
+                },
+                {
+                    text: "โมเมนต์ของแรง (Moment) มีค่าเท่ากับผลคูณของขนาดของแรงกับปริมาณใด?",
+                    choices: ["ระยะทางตามแนวโค้ง", "ระยะทางจากจุดหมุนตั้งฉากกับแนวแรง", "ความเร่งเนื่องจากแรงโน้มถ่วง", "มวลของวัตถุ"],
+                    correct: 1,
+                    diagram: "moment_calc"
+                },
+                {
+                    text: "หากผลรวมของโมเมนต์ทวนเข็มนาฬิกาเท่ากับผลรวมของโมเมนต์ตามเข็มนาฬิกาทีละจุดหมุน ข้อใดสรุปได้ถูกต้อง?",
+                    choices: ["วัตถุเกิดความเร่งในการเคลื่อนที่", "วัตถุอยู่ในสมดุลต่อการหมุน", "วัตถุกำลังหมุนด้วยความเร็วเพิ่มขึ้น", "ไม่มีข้อถูก"],
+                    correct: 1,
+                    diagram: "torque_balance"
+                },
+                {
+                    text: "แม่เหล็กหรือคานงัดอันหนึ่งมีจุดหมุนอยู่ตรงกลาง หากออกแรง 20 นิวตัน ที่แขนคานยาว 1.5 เมตร โมเมนต์ของแรงนี้มีค่าเท่าใด?",
+                    choices: ["15 N·m", "30 N·m", "45 N·m", "60 N·m"],
+                    correct: 1,
+                    diagram: "lever_moment"
+                },
+                {
+                    text: "เงื่อนไขข้อใดเป็นเงื่อนไขที่จำเป็นและเพียงพอสำหรับวัตถุที่อยู่ใน 'สมดุลกล' (Mechanical Equilibrium)?",
+                    choices: ["ΣF = 0 อย่างเดียว", "ΣM = 0 อย่างเดียว", "ΣF = 0 และ ΣM = 0", "Σv = 0 และ Σa = 0"],
+                    correct: 2,
+                    diagram: "force_balance"
+                },
+                {
+                    text: "ถ้าวัตถุอยู่นิ่งบนพื้นราบ แรงปฏิกิริยาตั้งฉาก (Normal Force, N) กับน้ำหนักของวัตถุ (mg) มีความสัมพันธ์กันอย่างไรในแนวตั้ง?",
+                    choices: ["N > mg", "N < mg", "N = mg", "ไม่มีความสัมพันธ์กัน"],
+                    correct: 2,
+                    diagram: "force_balance"
+                },
+                {
+                    text: "คานยาว 3 เมตร มีน้ำหนักมากระทำที่จุดต่างๆ ทำให้เกิดโมเมนต์ทวน 120 N·m และโมเมนต์ตาม 80 N·m คานนี้จะหมุนไปในทิศทางใด?",
+                    choices: ["หมุนทวนเข็มนาฬิกา", "หมุนตามเข็มนาฬิกา", "อยู่นิ่งไม่หมุน", "เคลื่อนที่ขึ้นในแนวดิ่ง"],
+                    correct: 0,
+                    diagram: "torque_balance"
+                },
+                {
+                    text: "เครื่องมือข้อใดอาศัยหลักการของโมเมนต์ของแรงอย่างชัดเจนที่สุด?",
+                    choices: ["ตราชั่งสปริง", "คีมตัดลวด / กรรไกร", "เครื่องชั่งดิจิทัล", "ตาชั่งแขวนสปริงแนวตั้ง"],
+                    correct: 1,
+                    diagram: "lever_moment"
+                },
+                {
+                    text: "หากเราขยับจุดหมุนของคานงัดให้เข้าใกล้กับวัตถุที่มีน้ำหนักมาก จะส่งผลอย่างไรต่อแรงที่ใช้ในการยก?",
+                    choices: ["ต้องใช้แรงมากขึ้น", "ใช้แรงน้อยลงในการยก", "ใช้แรงเท่าเดิม", "วัตถุจะไม่สมดุลทันที"],
+                    correct: 1,
+                    diagram: "lever_moment"
+                },
+                {
+                    text: "แรง 3 แรงขนาดเท่ากัน กระทำต่อวัตถุในระนาบเดียวกันทำมุม 120 องศาซึ่งกันและกัน ผลรวมของแรงทั้งสาม (ΣF) มีค่าเท่าใด?",
+                    choices: ["เท่ากับ 3 เท่าของแรง", "เท่ากับศูนย์", "เท่ากับ 1.5 เท่าของแรง", "ไม่สามารถหาค่าได้"],
+                    correct: 1,
+                    diagram: "force_balance"
+                },
+                {
+                    text: "ข้อใดกล่าวถึง 'โมเมนต์ของแรง' ได้ถูกต้องที่สุด?",
+                    choices: ["ปริมาณสเกลาร์", "ปริมาณเวกเตอร์ที่มีทิศทางหมุนตามหรือทวนเข็ม", "แรงที่กระทำในแนวราบเท่านั้น", "แรงโน้มถ่วงที่ดึงวัตถุลงสู่พื้น"],
+                    correct: 1,
+                    diagram: "moment_calc"
+                },
+                {
+                    text: "ถ้าวัตถุหนึ่งมี ΣF = 0 แต่ ΣM ≠ 0 สภาพการเคลื่อนที่ของวัตถุจะเป็นอย่างไร?",
+                    choices: ["อยู่นิ่งสนิทสมบูรณ์", "เลื่อนที่ด้วยความเร็วคงตัวแต่จะหมุน", "หมุนด้วยความเร็วคงตัว", "ไม่เคลื่อนที่และไม่หมุน"],
+                    correct: 1,
+                    diagram: "torque_balance"
+                },
+                {
+                    text: "คานอันหนึ่งวางพาดบนจุดหมุน ปลายซ้ายแขวนมวล 10 kg ห่าง 1 เมตร ปลายขวาแขวนมวล 5 kg ต้องวางห่างจากจุดหมุนเท่าใดจึงจะสมดุล?",
+                    choices: ["1 เมตร", "2 เมตร", "3 เมตร", "4 เมตร"],
+                    correct: 1,
+                    diagram: "lever_moment"
+                },
+                {
+                    text: "ข้อใดไม่ใช่ประโยชน์จากความรู้เรื่องโมเมนต์ของแรงในชีวิตประจำวัน?",
+                    choices: ["การเปิดฝาขวดน้ำอัดลมด้วยที่เปิด", "การใช้ประแจขันน็อต", "การเดินทรงตัวบนเชือก", "การคำนวณความดันของเหลว"],
+                    correct: 3,
+                    diagram: "moment_calc"
+                }
+            ],
+            2: [ // Level 2: ศูนย์ถ่วงและเสถียรภาพ
+                {
+                    text: "จุดศูนย์ถ่วง (Center of Gravity) ของวัตถุรูปทรงเรขาคณิตสม่ำเสมอจะอยู่ที่ใด?",
+                    choices: ["ที่ขอบมุมวัตถุ", "ที่จุดเรขาคณิตกึ่งกลางของวัตถุ", "อยู่นอกตัววัตถุเสมอ", "ขึ้นอยู่กับอุณหภูมิ"],
+                    correct: 1,
+                    diagram: "cog_center"
+                },
+                {
+                    text: "วัตถุที่มีเสถียรภาพในการทรงตัวสูงสุด ควรมีลักษณะอย่างไร?",
+                    choices: ["ฐานกว้างและจุดศูนย์ถ่วงต่ำ", "ฐานแคบและจุดศูนย์ถ่วงสูง", "จุดศูนย์ถ่วงอยู่สูงที่สุด", "น้ำหนักเบาที่สุด"],
+                    correct: 0,
+                    diagram: "stability_pyramid"
+                },
+                {
+                    text: "เมื่อเอียงวัตถุแล้วเส้นดิ่งผ่านจุดศูนย์ถ่วงยังคงตกภายในฐานของวัตถุ วัตถุนั้นจะเป็นอย่างไร?",
+                    choices: ["ล้มคว่ำลงทันที", "กลับคืนสู่ตำแหน่งเดิม (สมดุลเสถียร)", "เคลื่อนที่ไปด้านข้าง", "หมุนรอบตัวเอง"],
+                    correct: 1,
+                    diagram: "stability_pyramid"
+                },
+                {
+                    text: "สมดุล 3 ชนิด ได้แก่ สมดุลเสถียร (Stable), สมดุลสะเทิน (Neutral) และสมดุลใดอีกหนึ่งชนิด?",
+                    choices: ["สมดุลไม่เสถียร (Unstable)", "สมดุลความร้อน", "สมดุลไดนามิก", "สมดุลแม่เหล็ก"],
+                    correct: 0,
+                    diagram: "cog_center"
+                },
+                {
+                    text: "ทรงกลมวางอยู่บนพื้นราบเรียบ เมื่อกลิ้งไปเล็กน้อยแล้วหยุดนิ่งในตำแหน่งใหม่ ถือเป็นสมดุลประเภทใด?",
+                    choices: ["สมดุลเสถียร", "สมดุลไม่เสถียร", "สมดุลสะเทิน", "ไม่อยู่ในสมดุล"],
+                    correct: 2,
+                    diagram: "cog_center"
+                },
+                {
+                    text: "กรวยวางตั้งบนฐานกว้าง ถือเป็นสมดุลแบบใด หากเอียงเล็กน้อยแล้วกลับมาตั้งได้?",
+                    choices: ["สมดุลเสถียร", "สมดุลไม่เสถียร", "สมดุลสะเทิน", "สมดุลการเลื่อนที่"],
+                    correct: 0,
+                    diagram: "stability_pyramid"
+                },
+                {
+                    text: "กรวยวางคว่ำบนยอดแหลม (สมดุลไม่เสถียร) หากถูกรบกวนเล็กน้อยจะเกิดอะไรขึ้น?",
+                    choices: ["กลับมาตั้งเหมือนเดิม", "ล้มคว่ำลงทันที", "กลิ้งไปเรื่อยๆ", "ลอยขึ้นฟ้า"],
+                    correct: 1,
+                    diagram: "stability_pyramid"
+                },
+                {
+                    text: "รถแข่ง Formula 1 มักถูกออกแบบให้ตัวรถแบนเตี้ยและฐานล้อกว้าง เพื่อวัตถุประสงค์ใดทางฟิสิกส์?",
+                    choices: ["ลดแรงเสียดทานกับอากาศ", "เพิ่มเสถียรภาพและป้องกันการพลิกคว่ำ", "เพิ่มความเร่งสูงสุด", "ประหยัดน้ำมันเชื้อเพลิง"],
+                    correct: 1,
+                    diagram: "stability_pyramid"
+                },
+                {
+                    text: "จุดศูนย์กลางมวล (Center of Mass) กับ จุดศูนย์ถ่วง (Center of Gravity) จะเป็นจุดเดียวกันเมื่อใด?",
+                    choices: ["เมื่อสนามโน้มถ่วงสม่ำเสมอทั่วทั้งวัตถุ", "เมื่อวัตถุมีขนาดใหญ่มากๆ", "เมื่อวัตถุอยู่ในอวกาศ", "ไม่มีทางเป็นจุดเดียวกัน"],
+                    correct: 0,
+                    diagram: "cog_center"
+                },
+                {
+                    text: "การยืนกางขาออกเวลาอยู่บนรถเมล์ที่กำลังแล่น ช่วยเพิ่มเสถียรภาพเพราะเหตุใด?",
+                    choices: ["ทำให้จุดศูนย์ถ่วงสูงขึ้น", "ทำให้ฐานของการทรงตัวกว้างขึ้น", "ทำให้น้ำหนักตัวลดลง", "ลดแรงลม"],
+                    correct: 1,
+                    diagram: "stability_pyramid"
+                },
+                {
+                    text: "หากวัตถุรูปทรงไม่สม่ำเสมอ เราสามารถหาตำแหน่งศูนย์ถ่วงได้ด้วยวิธีใด?",
+                    choices: ["แขวนวัตถุจากจุดต่างๆ แล้วลากเส้นดิ่งตัดกัน", "ชั่งน้ำหนักด้วยตาชั่งดิจิทัล", "นำไปแช่น้ำ", "วัดอุณหภูมิ"],
+                    correct: 0,
+                    diagram: "cog_center"
+                },
+                {
+                    text: "วัตถุในข้อใดจัดอยู่ในประเภท 'สมดุลสะเทิน'?",
+                    choices: ["ทรงกระบอกวางนอนบนพื้นราบ", "ลูกปิงปองวางบนพื้นโต๊ะ", "กรวยตั้งบนฐาน", "กรวยคว่ำบนยอด"],
+                    correct: 0,
+                    diagram: "cog_center"
+                },
+                {
+                    text: "ถ้าเส้นดิ่งจากจุดศูนย์ถ่วงของวัตถุตกลง 'นอกฐาน' ของวัตถุ ผลลัพธ์จะเป็นอย่างไร?",
+                    choices: ["วัตถุสมดุลดีเยี่ยม", "วัตถุจะพลิกคว่ำหรือล้มลง", "วัตถุจะลอยขึ้น", "วัตถุจะหมุนด้วยความเร็วคงตัว"],
+                    correct: 1,
+                    diagram: "stability_pyramid"
+                },
+                {
+                    text: "ทำไมรถบรรทุกสินค้าที่บรรทุกของสูงมากๆ จึงเสี่ยงต่อการพลิกคว่ำเวลาเข้าโค้ง?",
+                    choices: ["ทำให้จุดศูนย์ถ่วงรวมสูงขึ้น", "ทำให้ฐานล้อแคบลง", "น้ำหนักรถเบาเกินไป", "แรงเสียดทานน้อยเกินไป"],
+                    correct: 0,
+                    diagram: "stability_pyramid"
+                },
+                {
+                    text: "ข้อใดกล่าวถูกต้องเกี่ยวกับเสถียรภาพของวัตถุ?",
+                    choices: ["วัตถุฐานแคบมีเสถียรภาพสูงกว่าฐานกว้าง", "จุดศูนย์ถ่วงยิ่งต่ำ เสถียรภาพยิ่งดี", "ตำแหน่งศูนย์ถ่วงไม่มีผลต่อการล้ม", "วัตถุทุกชิ้นมีเสถียรภาพเท่ากัน"],
+                    correct: 1,
+                    diagram: "stability_pyramid"
+                }
+            ],
+            3: [ // Level 3: สมดุลต่อการเลื่อนที่และหมุน (สมดุลสมบูรณ์)
+                {
+                    text: "คานสม่ำเสมอยาว L น้ำหนัก W แขวนไว้ด้วยเชือกสองเส้นที่ปลายทั้งสองข้าง ถ้าแขวนวัตถุน้ำหนัก 2W ไว้ที่ตำแหน่ง 1/4 ของคานจากปลายซ้าย แรงตึงเชือก T1 และ T2 จะเป็นอย่างไร?",
+                    choices: ["T1 = T2", "T1 > T2", "T1 < T2", "T1 และ T2 เป็นศูนย์"],
+                    correct: 1,
+                    diagram: "torque_balance"
+                },
+                {
+                    text: "บันไดวางพิงกำแพงเกลี้ยง (ไม่มีความเสียดทานที่กำแพง) แต่มีแรงเสียดทานที่พื้นราบ หากบันไดอยู่ในสมดุล ข้อใดถูกต้อง?",
+                    choices: ["แรงเสียดทานที่พื้นมีค่าเป็นศูนย์", "แรงในแนวราบที่พื้นต้องเท่ากับแรงปฏิกิริยาที่กำแพงดันบันได", "แรงกดที่พื้นมีค่าน้อยกว่าน้ำหนักบันได", "ไม่มีข้อถูก"],
+                    correct: 1,
+                    diagram: "ladder_problem"
+                },
+                {
+                    text: "เงื่อนไขของ 'สมดุลกลสมบูรณ์' (Complete Equilibrium) ประกอบด้วยอะไรบ้าง?",
+                    choices: ["ΣF = 0 และ ΣM = 0", "ΣF ≠ 0 แต่ ΣM = 0", "ΣF = 0 แต่ ΣM ≠ 0", "ไม่มีข้อใดถูก"],
+                    correct: 0,
+                    diagram: "force_balance"
+                },
+                {
+                    text: "ชายคนหนึ่งน้ำหนัก 600 N เดินขึ้นไปบนคานสม่ำเสมอน้ำหนัก 400 N ยาว 6 เมตร ที่วางพาดบนเสา 2 ต้นที่ปลายคาน จงหาแรงกดที่เสาต้นขวาเมื่อชายคนนี้อยู่ห่างจากเสาซ้าย 2 เมตร",
+                    choices: ["333.3 นิวตัน", "500 นิวตัน", "666.7 นิวตัน", "800 นิวตัน"],
+                    correct: 1,
+                    diagram: "lever_moment"
+                },
+                {
+                    text: "การใช้สูตร ΣM = 0 เราสามารถเลือกจุดหมุน (Pivot) ไว้ที่ตำแหน่งใดก็ได้เพื่อให้คำนวณง่ายที่สุด?",
+                    choices: ["ต้องเลือกที่จุดกึ่งกลางวัตถุเท่านั้น", "เลือกที่ตำแหน่งที่มีแรงที่ไม่รู้ค่าผ่าน เพื่อให้โมเมนต์จากแรงนั้นเป็นศูนย์", "เลือกที่จุดใดก็ได้นอกวัตถุ", "เลือกที่ปลายสุดด้านขวาเท่านั้น"],
+                    correct: 1,
+                    diagram: "torque_balance"
+                },
+                {
+                    text: "กล่องหนัก 100 N วางอยู่บนพื้นราบ ออกแรง F ดึงในแนวระดับ ทำให้กล่องกำลังจะเริ่มเคลื่อนที่ (สถิตขีดจำกัด) หากสัมประสิทธิ์ความเสียดทานสถิตเท่ากับ 0.4 แรง F มีค่าเท่าใด?",
+                    choices: ["40 นิวตัน", "100 นิวตัน", "250 นิวตัน", "400 นิวตัน"],
+                    correct: 0,
+                    diagram: "force_balance"
+                },
+                {
+                    text: "วัตถุแขวนด้วยเชือก 2 เส้นทำมุมเอียง หากระบบอยู่ในสมดุล การแตกแรงออกเป็นแกน X และแกน Y จะต้องสอดคล้องกับสมการใด?",
+                    choices: ["ΣFx = 0 และ ΣFy = 0", "ΣFx = F และ ΣFy = F", "ΣFx > ΣFy", "ไม่มีข้อถูก"],
+                    correct: 0,
+                    diagram: "force_balance"
+                },
+                {
+                    text: "คานเบายาว 5 ม. มีน้ำหนัก 200 N แขวนห่างจากซ้าย 2 ม. ถ้าต้องการให้คานสมดุลโดยมีแรงดึง T ที่ปลายขวา แรง T จะมีค่าเท่าใด (จุดหมุนอยู่ที่ปลายซ้าย)?",
+                    choices: ["80 นิวตัน", "100 นิวตัน", "120 นิวตัน", "200 นิวตัน"],
+                    correct: 0,
+                    diagram: "lever_moment"
+                },
+                {
+                    text: "หากวัตถุถูกกระทำด้วยแรงคู่ควบ (Couple) 2 แรงที่มีขนาดเท่ากัน ทิศทางตรงข้าม และไม่อยู่ในแนวเส้นตรงเดียวกัน ผลลัพธ์ที่เกิดขึ้นคืออะไร?",
+                    choices: ["วัตถุเคลื่อนที่เลื่อนที่ด้วยความเร่ง", "วัตถุจะหมุนรอบจุดศูนย์กลางโดยไม่มีการเลื่อนที่", "วัตถุอยู่นิ่งสมบูรณ์", "วัตถุจะกระโดดขึ้นลง"],
+                    correct: 1,
+                    diagram: "torque_balance"
+                },
+                {
+                    text: "ในการแก้โจทย์ปัญหาเรื่องบันไดพิงกำแพง แรงเสียดทานที่พื้นจะมีทิศทางไปทางใดเพื่อต้านการลื่นไถล?",
+                    choices: ["พุ่งออกจากกำแพงเข้าหาฐานบันได", "พุ่งเข้าหากำแพง", "พุ่งขึ้นในแนวดิ่ง", "พุ่งลงในแนวดิ่ง"],
+                    correct: 0,
+                    diagram: "ladder_problem"
+                },
+                {
+                    text: "ป้ายโฆษณาแขวนด้วยลวดสลิง 2 เส้นทำมุมฉาก หากป้ายหนัก 300 N และสมดุล แรงตึงในลวดสลิงจะเป็นไปตามข้อใด?",
+                    choices: ["ผลรวมแรงตึงแนวตั้งเท่ากับน้ำหนักป้าย", "แรงตึงเท่ากันทั้งสองเส้นเสมอ", "แรงตึงเป็นศูนย์", "แรงตึงมากกว่า 300 N ทุกเส้น"],
+                    correct: 0,
+                    diagram: "force_balance"
+                },
+                {
+                    text: "ถ้าวัตถุอยู่ภายใต้ระบบแรงขนาน (Parallel Forces) 3 แรงกระทำในทิศทางตั้งฉาก เงื่อนไขสมดุลต่อการหมุนจะใช้หลักการใด?",
+                    choices: ["ΣF = 0", "ผลรวมโมเมนต์ทวน = ผลรวมโมเมนต์ตาม", "ความเร่งเชิงมุมคงตัว", "มวลคูณความเร่ง"],
+                    correct: 1,
+                    diagram: "torque_balance"
+                },
+                {
+                    text: "คานสม่ำเสมอน้ำหนัก 40 นิวตัน ยาว 4 เมตร แขวนวัตถุ 60 นิวตัน ที่ปลายซ้าย จุดหมุนอยู่ห่างจากปลายซ้าย 1 เมตร ต้องแขวนวัตถุอีกก้อนหนักเท่าใดที่ปลายขวาจึงจะสมดุล?",
+                    choices: ["20 นิวตัน", "30 นิวตัน", "40 นิวตัน", "50 นิวตัน"],
+                    correct: 1,
+                    diagram: "lever_moment"
+                },
+                {
+                    text: "ข้อใดอธิบายสถานการณ์ 'สมดุลต่อการเลื่อนที่' ได้ถูกต้องที่สุด?",
+                    choices: ["ความเร็ว v ของวัตถุเป็นศูนย์หรือคงตัว (a = 0)", "ความเร็วเพิ่มขึ้นเรื่อยๆ", "วัตถุกำลังหมุนด้วยความเร็วรอบสูง", "ไม่มีแรงใดๆ กระทำต่อวัตถุเลย"],
+                    correct: 0,
+                    diagram: "force_balance"
+                },
+                {
+                    text: "ในการทดลองเรื่องสมดุลของคาน หากเข็มชี้ศูนย์กลางตรงกลางพอดี แสดงว่าระบบเป็นอย่างไร?",
+                    choices: ["คานเอียงซ้าย", "คานเอียงขวา", "คานอยู่ในสมดุลต่อการหมุน (ΣM = 0)", "คานกำลังจะหัก"],
+                    correct: 2,
+                    diagram: "torque_balance"
+                }
+            ]
+        };
+
+        // --- DYNAMIC SVG DIAGRAM GENERATOR ---
+        function renderPhysicsDiagram(type) {
+            const container = document.getElementById('diagram-container');
+            let svgContent = '';
+
+            switch(type) {
+                case 'force_balance':
+                    svgContent = `
+                        <svg viewBox="0 0 200 120" class="w-full h-32">
+                            <line x1="20" y1="60" x2="180" y2="60" stroke="#3a414e" stroke-width="4" stroke-dasharray="4"/>
+                            <rect x="75" y="35" width="50" height="50" rx="8" fill="#0070f3" stroke="#60a5fa" stroke-width="2"/>
+                            <text x="100" y="65" fill="white" font-size="14" font-weight="bold" text-anchor="middle">m</text>
+                            <!-- F1 -->
+                            <line x1="75" y1="60" x2="35" y2="60" stroke="#f5a623" stroke-width="4" marker-end="url(#arrow)"/>
+                            <text x="55" y="45" fill="#f5a623" font-size="12" font-weight="bold" text-anchor="middle">F₁</text>
+                            <!-- F2 -->
+                            <line x1="125" y1="60" x2="165" y2="60" stroke="#23883a" stroke-width="4"/>
+                            <text x="145" y="45" fill="#23883a" font-size="12" font-weight="bold" text-anchor="middle">F₂</text>
+                        </svg>`;
+                    break;
+                case 'lever_moment':
+                    svgContent = `
+                        <svg viewBox="0 0 200 120" class="w-full h-32">
+                            <polygon points="100,90 90,110 110,110" fill="#f5a623"/>
+                            <line x1="30" y1="90" x2="170" y2="90" stroke="#0070f3" stroke-width="6" stroke-linecap="round"/>
+                            <!-- Pivot triangle -->
+                            <circle cx="100" cy="90" r="4" fill="#ffffff"/>
+                            <!-- Weight Left -->
+                            <rect x="45" y="65" width="25" height="25" rx="4" fill="#23883a"/>
+                            <text x="57" y="82" fill="white" font-size="11" font-weight="bold" text-anchor="middle">W₁</text>
+                            <!-- Force Right -->
+                            <line x1="150" y1="90" x2="150" y2="50" stroke="#e81d1d" stroke-width="4"/>
+                            <text x="162" y="65" fill="#e81d1d" font-size="12" font-weight="bold">F</text>
+                            <text x="100" y="30" fill="#9ca3af" font-size="10" text-anchor="middle">L₁ & L₂ (Moment Equilibrium)</text>
+                        </svg>`;
+                    break;
+                case 'moment_calc':
+                    svgContent = `
+                        <svg viewBox="0 0 200 120" class="w-full h-32">
+                            <line x1="40" y1="80" x2="160" y2="80" stroke="#3a414e" stroke-width="6"/>
+                            <circle cx="70" cy="80" r="6" fill="#f5a623"/>
+                            <text x="70" y="100" fill="#f5a623" font-size="10" text-anchor="middle">จุดหมุน (Pivot)</text>
+                            <line x1="140" y1="80" x2="140" y2="35" stroke="#0070f3" stroke-width="4"/>
+                            <text x="152" y="60" fill="#0070f3" font-size="12" font-weight="bold">F</text>
+                            <path d="M 70 80 L 140 80" stroke="#9ca3af" stroke-dasharray="2" stroke-width="2"/>
+                            <text x="105" y="72" fill="#9ca3af" font-size="10" text-anchor="middle">ตั้งฉาก (L)</text>
+                        </svg>`;
+                    break;
+                case 'torque_balance':
+                    svgContent = `
+                        <svg viewBox="0 0 200 120" class="w-full h-32">
+                            <circle cx="100" cy="60" r="35" fill="none" stroke="#0070f3" stroke-width="4" stroke-dasharray="6"/>
+                            <path d="M 85 45 L 115 75 M 115 45 L 85 75" stroke="#23883a" stroke-width="4"/>
+                            <path d="M 100 20 A 40 40 0 0 1 135 80" fill="none" stroke="#f5a623" stroke-width="3"/>
+                            <text x="100" y="110" fill="#f5a623" font-size="11" font-weight="bold" text-anchor="middle">ΣM = 0 (สมดุลต่อการหมุน)</text>
+                        </svg>`;
+                    break;
+                case 'cog_center':
+                    svgContent = `
+                        <svg viewBox="0 0 200 120" class="w-full h-32">
+                            <polygon points="100,20 140,90 60,90" fill="#23883a" opacity="0.8"/>
+                            <circle cx="100" cy="65" r="6" fill="#f5a623"/>
+                            <text x="100" y="110" fill="#white" font-size="11" font-weight="bold" text-anchor="middle">Center of Gravity (C.G.)</text>
+                        </svg>`;
+                    break;
+                case 'stability_pyramid':
+                    svgContent = `
+                        <svg viewBox="0 0 200 120" class="w-full h-32">
+                            <polygon points="100,30 160,95 40,95" fill="#0070f3" opacity="0.7"/>
+                            <line x1="100" y1="30" x2="100" y2="105" stroke="#e81d1d" stroke-width="2" stroke-dasharray="3"/>
+                            <circle cx="100" cy="60" r="5" fill="#f5a623"/>
+                            <text x="100" y="115" fill="#f5a623" font-size="10" font-weight="bold" text-anchor="middle">ฐานกว้าง / จุดศูนย์ถ่วงต่ำ</text>
+                        </svg>`;
+                    break;
+                case 'ladder_problem':
+                    svgContent = `
+                        <svg viewBox="0 0 200 120" class="w-full h-32">
+                            <line x1="50" y1="100" x2="150" y2="100" stroke="#3a414e" stroke-width="4"/>
+                            <line x1="130" y1="100" x2="70" y2="20" stroke="#f5a623" stroke-width="6"/>
+                            <line x1="130" y1="100" x2="130" y2="20" stroke="#60a5fa" stroke-width="4"/>
+                            <text x="100" y="60" fill="white" font-size="11" font-weight="bold" text-anchor="middle">บันไดพิงกำแพง</text>
+                        </svg>`;
+                    break;
+                default:
+                    svgContent = `
+                        <svg viewBox="0 0 200 120" class="w-full h-32">
+                            <rect x="50" y="40" width="100" height="40" rx="8" fill="#0070f3"/>
+                            <text x="100" y="65" fill="white" font-size="12" font-weight="bold" text-anchor="middle">สมดุลกล</text>
+                        </svg>`;
+            }
+            container.innerHTML = svgContent;
+        }
+
+        // --- NAVIGATION & SCREEN MANAGER ---
+        function showScreen(screenId) {
+            soundEngine.playClick();
+            const screens = ['screen-login', 'screen-menu', 'screen-levelselect', 'screen-game', 'screen-levelsummary', 'screen-stats', 'screen-settings'];
+            screens.forEach(id => {
+                const el = document.getElementById(id);
+                if (id === screenId) {
+                    el.classList.remove('hidden');
+                } else {
+                    el.classList.add('hidden');
+                }
+            });
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadSavedData();
+            updateMenuUI();
+        });
+
+        function selectAvatar(emoji) {
+            soundEngine.playClick();
+            studentData.avatar = emoji;
+            const buttons = document.querySelectorAll('.avatar-option');
+            buttons.forEach(btn => {
+                if (btn.textContent.trim() === emoji) {
+                    btn.classList.add('border-robloxBlue', 'bg-gray-700');
+                    btn.classList.remove('border-transparent');
+                } else {
+                    btn.classList.remove('border-robloxBlue', 'bg-gray-700');
+                    btn.classList.add('border-transparent');
+                }
+            });
+        }
+
+        function handleLogin() {
+            soundEngine.playClick();
+            const name = document.getElementById('input-username').value.trim();
+            const id = document.getElementById('input-studentid').value.trim();
+
+            if (!name || !id) {
+                alert("กรุณากรอกชื่อและเลขประจำตัวนักเรียนให้ครบถ้วนครับ!");
+                return;
+            }
+
+            studentData.name = name;
+            studentData.id = id;
+            saveData();
+
+            document.getElementById('header-user-display').classList.remove('hidden');
+            document.getElementById('header-user-display').classList.add('flex');
+            document.getElementById('header-username').textContent = studentData.name;
+            document.getElementById('header-avatar-icon').textContent = studentData.avatar;
+            document.getElementById('menu-welcome-title').textContent = `ยินดีต้อนรับ, ${studentData.name}!`;
+
+            showScreen('screen-menu');
+            soundEngine.startBGM();
+        }
+
+        function updateMenuUI() {
+            document.getElementById('l1-best').textContent = `${studentData.levelScores[1]} / 15`;
+            document.getElementById('l2-best').textContent = `${studentData.levelScores[2]} / 15`;
+            document.getElementById('l3-best').textContent = `${studentData.levelScores[3]} / 15`;
+        }
+
+        // --- GAMEPLAY CONTROLLER ---
+        function startLevel(levelNum) {
+            soundEngine.playClick();
+            currentGame.level = levelNum;
+            currentGame.currentQuestionIndex = 0;
+            currentGame.score = 0;
+            currentGame.timeLeft = 480; // 8 minutes
+            currentGame.startTime = Date.now();
+            currentGame.questions = [...physicsDatabase[levelNum]].sort(() => Math.random() - 0.5); // Shuffle questions
+
+            document.getElementById('game-stage-indicator').textContent = `ด่าน ${levelNum}`;
+            showScreen('screen-game');
+            loadQuestion();
+
+            if (currentGame.timerInterval) clearInterval(currentGame.timerInterval);
+            currentGame.timerInterval = setInterval(() => {
+                currentGame.timeLeft--;
+                updateTimerDisplay();
+                if (currentGame.timeLeft <= 0) {
+                    clearInterval(currentGame.timerInterval);
+                    endLevel();
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const min = Math.floor(currentGame.timeLeft / 60);
+            const sec = currentGame.timeLeft % 60;
+            document.getElementById('game-timer').textContent = `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+        }
+
+        function loadQuestion() {
+            if (currentGame.currentQuestionIndex >= currentGame.questions.length) {
+                endLevel();
+                return;
+            }
+
+            const q = currentGame.questions[currentGame.currentQuestionIndex];
+            document.getElementById('game-qnum').textContent = `${currentGame.currentQuestionIndex + 1}/15`;
+            document.getElementById('game-score').textContent = currentGame.score;
+            document.getElementById('question-text').textContent = q.text;
+            renderPhysicsDiagram(q.diagram);
+
+            const container = document.getElementById('choices-container');
+            container.innerHTML = '';
+
+            q.choices.forEach((choice, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "roblox-btn bg-[#23272e] hover:bg-[#2d323c] border-2 border-[#3a414e] text-left p-4 rounded-2xl font-bold text-sm text-gray-200 transition flex items-center space-x-3";
+                btn.innerHTML = `<span class="w-7 h-7 bg-gray-700 rounded-xl flex items-center justify-center text-xs text-robloxYellow font-black">${String.fromCharCode(65 + idx)}</span><span>${choice}</span>`;
+                btn.onclick = () => submitAnswer(idx, q.correct);
+                container.appendChild(btn);
+            });
+        }
+
+        function submitAnswer(selectedIdx, correctIdx) {
+            const isCorrect = (selectedIdx === correctIdx);
+            if (isCorrect) {
+                soundEngine.playSuccess();
+                currentGame.score++;
+            } else {
+                soundEngine.playError();
+            }
+
+            // Highlight buttons briefly before moving next
+            const buttons = document.getElementById('choices-container').children;
+            for (let i = 0; i < buttons.length; i++) {
+                buttons[i].disabled = true;
+                if (i === correctIdx) {
+                    buttons[i].classList.add('bg-emerald-700/50', 'border-emerald-500');
+                } else if (i === selectedIdx && !isCorrect) {
+                    buttons[i].classList.add('bg-rose-700/50', 'border-rose-500');
+                }
+            }
+
+            setTimeout(() => {
+                currentGame.currentQuestionIndex++;
+                loadQuestion();
+            }, 800);
+        }
+
+        function confirmExitGame() {
+            if (confirm("คุณต้องการออกจากด่านนี้ใช่หรือไม่? คะแนนจะไม่ถูกบันทึก")) {
+                if (currentGame.timerInterval) clearInterval(currentGame.timerInterval);
+                showScreen('screen-levelselect');
+            }
+        }
+
+        function endLevel() {
+            if (currentGame.timerInterval) clearInterval(currentGame.timerInterval);
+            soundEngine.playSuccess();
+
+            const lvl = currentGame.level;
+            if (currentGame.score > studentData.levelScores[lvl]) {
+                studentData.levelScores[lvl] = currentGame.score;
+            }
+
+            const timeSpentSec = 480 - currentGame.timeLeft;
+            const timeMin = Math.floor(timeSpentSec / 60);
+            const timeSec = timeSpentSec % 60;
+            const timeFormatted = `${timeMin.toString().padStart(2, '0')}:${timeSec.toString().padStart(2, '0')} นาที`;
+
+            studentData.history.push({
+                level: lvl,
+                score: currentGame.score,
+                time: timeFormatted,
+                date: new Date().toLocaleDateString('th-TH')
+            });
+            saveData();
+            updateMenuUI();
+
+            // Populate Summary Screen
+            document.getElementById('summary-stage-name').textContent = `ด่านที่ ${lvl}: ${lvl === 1 ? 'แรงและโมเมนต์ของแรง' : lvl === 2 ? 'ศูนย์ถ่วงและเสถียรภาพ' : 'สมดุลต่อการเลื่อนที่และหมุน'}`;
+            document.getElementById('summary-score').textContent = `${currentGame.score} / 15`;
+            document.getElementById('summary-accuracy').textContent = `${Math.round((currentGame.score / 15) * 100)}%`;
+            document.getElementById('summary-time').textContent = timeFormatted;
+
+            const nextBtn = document.getElementById('summary-next-btn');
+            if (lvl < 3) {
+                nextBtn.style.display = 'block';
+                nextBtn.onclick = () => { showScreen('screen-levelselect'); startLevel(lvl + 1); };
+            } else {
+                nextBtn.style.display = 'none';
+            }
+
+            document.getElementById('screen-game').classList.add('hidden');
+            document.getElementById('screen-levelsummary').classList.remove('hidden');
+        }
+
+        function proceedNextLevel() {
+            document.getElementById('screen-levelsummary').classList.add('hidden');
+        }
+
+        // --- STATISTICS DASHBOARD ---
+        function openStatsScreen() {
+            soundEngine.playClick();
+            document.getElementById('stats-avatar').textContent = studentData.avatar;
+            document.getElementById('stats-name').textContent = studentData.name || "นักเรียน";
+            document.getElementById('stats-id').textContent = studentData.id || "-";
+
+            const totalScore = studentData.levelScores[1] + studentData.levelScores[2] + studentData.levelScores[3];
+            document.getElementById('stat-total-score').textContent = `${totalScore} / 45`;
+            document.getElementById('stat-l1-best').textContent = `${studentData.levelScores[1]}/15`;
+            document.getElementById('stat-l2-best').textContent = `${studentData.levelScores[2]}/15`;
+            document.getElementById('stat-l3-best').textContent = `${studentData.levelScores[3]}/15`;
+
+            const historyContainer = document.getElementById('history-list');
+            historyContainer.innerHTML = '';
+
+            if (studentData.history.length === 0) {
+                historyContainer.innerHTML = `<div class="text-xs text-gray-500 text-center py-4">ยังไม่มีประวัติการเล่น</div>`;
+            } else {
+                studentData.history.slice().reverse().forEach(item => {
+                    const row = document.createElement('div');
+                    row.className = "bg-[#191b1f] p-3 rounded-xl border border-gray-800 flex justify-between items-center text-xs";
+                    row.innerHTML = `
+                        <div><span class="font-bold text-robloxBlue">ด่าน ${item.level}</span> - คะแนน: <span class="text-emerald-400 font-black">${item.score}/15</span></div>
+                        <div class="text-gray-400">เวลา: ${item.time} (${item.date})</div>
+                    `;
+                    historyContainer.appendChild(row);
+                });
+            }
+
+            showScreen('screen-stats');
+        }
+
+        // --- SETTINGS CONTROLLER ---
+        function closeSettings() {
+            soundEngine.playClick();
+            const currentScreen = studentData.name ? 'screen-menu' : 'screen-login';
+            showScreen(currentScreen);
+        }
+
+        function onVolumeChange(val) {
+            soundEngine.setVolume(val);
+        }
+
+        function toggleSoundMute() {
+            const isMuted = soundEngine.toggleMute();
+            const btn = document.getElementById('mute-toggle-btn');
+            if (isMuted) {
+                btn.textContent = "ปิดเสียงอยู่";
+                btn.className = "bg-rose-600 px-4 py-2 rounded-xl font-bold text-xs roblox-btn";
+            } else {
+                btn.textContent = "เปิดเสียงอยู่";
+                btn.className = "bg-robloxGreen px-4 py-2 rounded-xl font-bold text-xs roblox-btn";
+            }
+        }
+
+        // --- LOCAL STORAGE PERSISTENCE ---
+        function saveData() {
+            localStorage.setItem('mechanical_equilibrium_student', JSON.stringify(studentData));
+        }
+
+        function loadSavedData() {
+            const saved = localStorage.getItem('mechanical_equilibrium_student');
+            if (saved) {
+                try {
+                    studentData = JSON.parse(saved);
+                    if (studentData.name) {
+                        document.getElementById('input-username').value = studentData.name;
+                        document.getElementById('input-studentid').value = studentData.id || "";
+                        selectAvatar(studentData.avatar);
+                    }
+                } catch (e) { console.error(e); }
+            }
+        }
+    </script>
+</body>
+</html>
